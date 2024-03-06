@@ -15,10 +15,10 @@ interval = 15 # Sample period in seconds
 MQTT_HOST ="mqtt3.thingspeak.com"
 MQTT_PORT = 1883
 MQTT_KEEPALIVE_INTERVAL =60
-MQTT_TOPIC = "******"
-MQTT_CLIENT_ID = "******"
-MQTT_USER = "******"
-MQTT_PWD = "******"
+MQTT_TOPIC = "channels/2459550/publish"
+MQTT_CLIENT_ID = "KQwEOggKARI7NjAWGikSOy0"
+MQTT_USER = "KQwEOggKARI7NjAWGikSOy0"
+MQTT_PWD = "RWoBuMTHgQNTm8BMQBTchjiC"
 
 
 def on_connect(client, userdata, flags, rc):
