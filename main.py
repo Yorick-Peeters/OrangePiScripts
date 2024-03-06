@@ -1,32 +1,62 @@
 import time
-import wiringpi
-import sys
+from bmp280 import BMP280
+from smbus2 import SMBus
+import paho.mqtt.client as mqtt
 
-def blink(_pin):
-    wiringpi.digitalWrite(_pin, 1)  # Write 1 (HIGH) to pin
-    time.sleep(0.01)
-    wiringpi.digitalWrite(_pin, 0)  # Write 0 (LOW) to pin
-    time.sleep(0.01)
+# Create an I2C bus object
+bus = SMBus(0)
+address = 0x77
 
-# SETUP
-print("Start")
-pin4 = 3   # GPIO pin numbering for Orange Pi may differ, adjust pin numbers accordingly
-pin8 = 4   # GPIO pin numbering for Orange Pi may differ, adjust pin numbers accordingly
-pin10 = 6  # GPIO pin numbering for Orange Pi may differ, adjust pin numbers accordingly
-pin12 = 9 # GPIO pin numbering for Orange Pi may differ, adjust pin numbers accordingly
+# Setup BMP280
+bmp280 = BMP280(i2c_addr= address, i2c_dev=bus)
+interval = 15 # Sample period in seconds
 
-wiringpi.wiringPiSetup()
-wiringpi.pinMode(pin4, 1)   # Set pin to mode 1 (OUTPUT)
-wiringpi.pinMode(pin8, 1)   # Set pin to mode 1 (OUTPUT)
-wiringpi.pinMode(pin10, 1)  # Set pin to mode 1 (OUTPUT)
-wiringpi.pinMode(pin12, 1)  # Set pin to mode 1 (OUTPUT)
+# MQTT settings
+MQTT_HOST ="mqtt3.thingspeak.com"
+MQTT_PORT = 1883
+MQTT_KEEPALIVE_INTERVAL =60
+MQTT_TOPIC = "******"
+MQTT_CLIENT_ID = "******"
+MQTT_USER = "******"
+MQTT_PWD = "******"
 
-# MAIN
-for i in range(0, 1000):
-    blink(pin4)
-    blink(pin8)
-    blink(pin10)
-    blink(pin12)
 
-# Cleanup
-print("Done")
+def on_connect(client, userdata, flags, rc):
+    if rc==0:
+        print("Connected OK with result code "+str(rc))
+    else:
+        print("Bad connection with result code "+str(rc))
+
+def on_disconnect(client, userdata, flags, rc=0):
+    print("Disconnected result code "+str(rc))
+
+def on_message(client,userdata,msg):
+    print("Received a message on topic: " + msg.topic + "; message: " + msg.payload)
+
+
+# Set up a MQTT Client
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, MQTT_CLIENT_ID)
+client.username_pw_set(MQTT_USER, MQTT_PWD)
+
+# Connect callback handlers to client
+client.on_connect= on_connect
+client.on_disconnect= on_disconnect
+client.on_message= on_message
+
+print("Attempting to connect to %s" % MQTT_HOST)
+client.connect(MQTT_HOST, MQTT_PORT)
+client.loop_start() #start the loop
+
+while True:
+    # Measure data
+    bmp280_temperature = bmp280.get_temperature()
+    bmp280_pressure = bmp280.get_pressure()
+    print("Temperature: %4.1f, Pressure: %4.1f" % (bmp280_temperature, bmp280_pressure))
+    # Create the JSON data structure
+    MQTT_DATA = "field1="+str(bmp280_temperature)+"&field2="+str(bmp280_pressure)+"&status=MQTTPUBLISH"
+    print(MQTT_DATA)
+    try:
+        client.publish(topic=MQTT_TOPIC, payload=MQTT_DATA, qos=0, retain=False, properties=None)
+        time.sleep(interval)
+    except OSError:
+        client.reconnect()
