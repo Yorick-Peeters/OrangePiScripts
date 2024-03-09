@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 
 # Create an I2C bus object
 bus = SMBus(0)
-address = 0x77
+address = 0x76
 
 # Setup BMP280
 bmp280 = BMP280(i2c_addr= address, i2c_dev=bus)
